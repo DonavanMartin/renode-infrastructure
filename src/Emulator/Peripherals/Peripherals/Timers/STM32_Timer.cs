@@ -673,6 +673,30 @@ namespace Antmicro.Renode.Peripherals.Timers
             }
         }
 
+        public override ulong Frequency
+        {
+            get => base.Frequency;
+            set
+            {
+                base.Frequency = value;
+                // The capture/compare channels count on their own LimitTimers, created with the
+                // construction-time frequency: keep them on the same clock as the main counter
+                // whenever it changes (e.g. RCC recomputing the kernel clock), otherwise a
+                // compare match lands at the wrong point of the counter's cycle.
+                if(channels == null)
+                {
+                    return;
+                }
+                foreach(var channel in channels)
+                {
+                    if(channel?.Timer != null)
+                    {
+                        channel.Timer.Frequency = value;
+                    }
+                }
+            }
+        }
+
         private void HandleCompareMatch(CaptureCompareChannel channel, int j)
         {
             if(!channel.IsOutputMode)
